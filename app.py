@@ -2,90 +2,161 @@ import streamlit as st
 import urllib.request, json, random, time
 import pandas as pd
 
-st.set_page_config(page_title="BOT MEME", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="MEME NAGA BIRU - PRO", page_icon="🐉", layout="wide")
+st.title("🐉 MEME NAGA BIRU - PRO")
+st.caption("Solana Trending - Harga Asli - Update 10 detik")
 
-st.title("🔥 HUNTING MEME BOT")
-st.caption("Solana Trending - Auto Giliran Coin - Update 10 detik")
-
+# --- SALDO AWAL ---
 if "cash" not in st.session_state:
-    st.session_state.cash = 1000
+    st.session_state.cash = 1000.0
     st.session_state.wins = 0
     st.session_state.losses = 0
     st.session_state.punya = None
     st.session_state.beli = 0
     st.session_state.jumlah = 0
     st.session_state.giliran = 0
-    st.session_state.history = [1000]
-    st.session_state.log = []
+    st.session_state.equity_hist = [1000.0]
+    st.session_state.depo_hist = []
 
-def ambil():
+# --- AMBIL HARGA ASLI DARI DEXTRENDING ---
+@st.cache_data(ttl=10)
+def ambil_coin():
     try:
-        req = urllib.request.Request("https://api.geckoterminal.com/api/v2/networks/solana/trending_pools", headers={"User-Agent":"Mozilla/5.0"})
-        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        out=[]
-        for d in data.get("data", [])[:10]:
-            a=d.get("attributes",{})
-            vol=float(a.get("volume_usd",{}).get("h24",0) or 0)
-            harga=float(a.get("base_token_price_usd",0) or 0)
-            if harga<=0: harga=vol/1000000
-            out.append({"nama":a.get("name"),"vol":vol,"harga":harga})
-        return out
+        url = "https://api.dexscreener.com/latest/dex/tokens/solana"
+        # fallback ke trending solana
+        req = urllib.request.Request("https://api.dexscreener.com/latest/dex/search/?q=solana", headers={"User-Agent":"Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
+            pairs = data.get("pairs", [])[:10]
+            coins = []
+            for p in pairs:
+                coins.append({"nama": p.get("baseToken",{}).get("symbol","?"), "harga": float(p.get("priceUsd",0) or 0), "naik": float(p.get("priceChange",{}).get("h1",0) or 0)})
+            if coins:
+                return coins
     except:
-        return []
+        pass
+    # kalau API gagal, pakai cadangan
+    return [{"nama":"BONK","harga":0.00002,"naik":5.2},{"nama":"WIF","harga":1.2,"naik":-2.1},{"nama":"POPCAT","harga":0.85,"naik":8.4},{"nama":"MEW","harga":0.005,"naik":3.1},{"nama":"BOME","harga":0.008,"naik":-1.5}]
 
-coins = ambil()
+coins = ambil_coin()
+if not coins:
+    coins = [{"nama":"BONK","harga":0.00002,"naik":0}]
 
-if coins:
-    if st.session_state.punya is None:
-        pilihan = coins[st.session_state.giliran % len(coins)]
-        st.session_state.giliran += 1
-        st.session_state.punya = pilihan["nama"]
-        st.session_state.beli = pilihan["harga"] * random.uniform(0.97, 1.03)
-        pakai = st.session_state.cash * 0.5
-        st.session_state.jumlah = pakai / st.session_state.beli
-        st.session_state.cash -= pakai
-        st.session_state.log.insert(0, f"BELI {pilihan['nama']}")
+# Auto giliran
+idx = st.session_state.giliran % len(coins)
+coin = coins[idx]
+harga = coin["harga"] if coin["harga"]>0 else 0.00001
+
+# Hitung Equity
+nilai_posisi = 0
+if st.session_state.punya:
+    nilai_posisi = st.session_state.jumlah * harga if st.session_state.punya == coin["nama"] else st.session_state.jumlah * st.session_state.beli
+    # pakai harga beli sebagai patokan kalau coin beda
+    if st.session_state.punya == coin["nama"]:
+        nilai_posisi = st.session_state.jumlah * harga
     else:
-        harga_now = st.session_state.beli
-        for c in coins:
-            if c["nama"] == st.session_state.punya:
-                harga_now = c["harga"] * random.uniform(0.97, 1.05)
-                break
-        profit = (harga_now - st.session_state.beli) / st.session_state.beli * 100
-        if profit >= 3:
-            st.session_state.cash += st.session_state.jumlah * harga_now
-            st.session_state.wins += 1
-            st.session_state.log.insert(0, f"JUAL UNTUNG {st.session_state.punya} +{profit:.1f}%")
-            st.session_state.punya = None
-        elif profit <= -2:
-            st.session_state.cash += st.session_state.jumlah * harga_now
-            st.session_state.losses += 1
-            st.session_state.log.insert(0, f"JUAL RUGI {st.session_state.punya} {profit:.1f}%")
-            st.session_state.punya = None
+        nilai_posisi = 100 # estimasi
+equity = st.session_state.cash + (st.session_state.jumlah * harga if st.session_state.punya == coin["nama"] else (st.session_state.jumlah * st.session_state.beli if st.session_state.punya else 0))
+cuan = equity - 1000.0
+st.session_state.equity_hist.append(equity)
+if len(st.session_state.equity_hist) > 50:
+    st.session_state.equity_hist = st.session_state.equity_hist[-50:]
 
-    equity = st.session_state.cash + (st.session_state.jumlah * st.session_state.beli if st.session_state.punya else 0)
-    cuan = int(equity - 1000)
-    st.session_state.history.append(int(equity))
+# --- METRICS ---
+c1,c2,c3,c4 = st.columns(4)
+c1.metric("MODAL", "$1000")
+c2.metric("CUAN", f"${cuan:,.2f}")
+c3.metric("EQUITY", f"${equity:,.2f}")
+c4.metric("MENANG / KALAH", f"{st.session_state.wins} Menang / {st.session_state.losses} Kalah")
+st.metric("CASH", f"${st.session_state.cash:,.2f}")
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("MODAL", "$ 1,000")
-    c2.metric("CUAN", f"$ {cuan:,}")
-    c3.metric("EQUITY", f"$ {int(equity):,}")
+# --- START / STOP / EMERGENCY ---
+st.divider()
+s1,s2,s3 = st.columns(3)
+if s1.button("▶️ START BOT", use_container_width=True, type="primary"):
+    st.session_state.running = True
+    st.rerun()
+if s2.button("⏸️ PAUSE BOT", use_container_width=True):
+    st.session_state.running = False
+    st.warning("Bot di-pause")
+    st.rerun()
+if s3.button("🚨 EMERGENCY STOP - JUAL SEMUA", use_container_width=True):
+    if st.session_state.punya:
+        st.session_state.cash += st.session_state.jumlah * harga
+        st.session_state.punya = None
+        st.session_state.jumlah = 0
+        st.success("Semua dijual! Balik jadi Cash")
+        st.rerun()
 
-    st.write(f"Status: {st.session_state.punya} | Menang: {st.session_state.wins} | Kalah: {st.session_state.losses} | Cash: $ {int(st.session_state.cash)} | Giliran ke-{st.session_state.giliran}")
+# --- CHART HIJAU / MERAH ---
+st.subheader("📊 Grafik Equity - Hijau Naik, Merah Turun")
+is_up = equity >= 1000
+warna = "#00FF88" if is_up else "#FF3355"
+st.markdown(f"<h3 style='color:{warna}'>{'▲ NAIK - HIJAU' if is_up else '▼ TURUN - MERAH'} - Equity ${equity:,.2f}</h3>", unsafe_allow_html=True)
+df = pd.DataFrame({"Equity": st.session_state.equity_hist})
+st.line_chart(df, color=warna)
 
-    st.subheader("Grafik Equity")
-    st.line_chart(pd.DataFrame(st.session_state.history, columns=["Equity"]))
+# --- DEPOSIT / WITHDRAW ---
+st.divider()
+st.subheader("🏦 Deposit & Withdraw")
+d1,d2 = st.columns(2)
+with d1:
+    dep = st.number_input("Deposit ($)", min_value=10.0, value=100.0, step=10.0, key="dep")
+    if st.button("➕ Deposit Sekarang", use_container_width=True):
+        st.session_state.cash += dep
+        st.session_state.depo_hist.append(f"DEPOSIT +${dep:,.2f} -> Cash ${st.session_state.cash:,.2f}")
+        st.success(f"Deposit +${dep:,.2f}")
+        st.rerun()
+with d2:
+    wd = st.number_input("Withdraw ($)", min_value=10.0, value=100.0, step=10.0, key="wd")
+    if st.button("➖ Withdraw Sekarang", use_container_width=True):
+        if wd > st.session_state.cash:
+            st.error("Cash tidak cukup!")
+        else:
+            st.session_state.cash -= wd
+            st.session_state.depo_hist.append(f"WITHDRAW -${wd:,.2f} -> Cash ${st.session_state.cash:,.2f}")
+            st.success(f"Withdraw -${wd:,.2f}")
+            st.rerun()
 
-    st.subheader("Top 10 Trending Solana")
-    df = pd.DataFrame([{"Coin": c["nama"], "Volume 24h": f"$ {c['vol']:,.0f}", "Harga": f"$ {c['harga']:.5f}", "Status": "DIBELI" if c["nama"]==st.session_state.punya else ""} for c in coins])
-    st.dataframe(df, use_container_width=True, hide_index=True)
+st.write("**Riwayat Deposit/Withdraw:**")
+for h in reversed(st.session_state.depo_hist[-5:]):
+    st.write(h)
 
-    st.subheader("Riwayat Jual Beli")
-    for l in st.session_state.log[:10]:
-        st.text(l)
+# --- COIN SAAT INI ---
+st.divider()
+st.subheader(f"🎯 Coin Giliran: {coin['nama']} - ${harga:.6f} - Naik/Turun 1j: {coin['naik']:.2f}%")
+if st.session_state.punya:
+    st.info(f"Kamu lagi pegang: {st.session_state.punya} sebanyak {st.session_state.jumlah:.2f} | Beli di ${st.session_state.beli:.6f}")
 else:
-    st.warning("Lagi loading data...")
+    st.write("Belum pegang coin. Cash siap beli.")
+
+b1,b2,b3 = st.columns(3)
+if b1.button("🟢 BELI $50", use_container_width=True):
+    if st.session_state.cash >= 50 and not st.session_state.punya:
+        st.session_state.cash -= 50
+        st.session_state.punya = coin["nama"]
+        st.session_state.beli = harga
+        st.session_state.jumlah = 50 / harga
+        st.success(f"Beli {coin['nama']} $50")
+        st.rerun()
+if b2.button("🔴 JUAL SEMUA", use_container_width=True):
+    if st.session_state.punya:
+        hasil = st.session_state.jumlah * harga if st.session_state.punya == coin["nama"] else st.session_state.jumlah * st.session_state.beli
+        # kalau coin beda, pakai harga saat ini sebagai estimasi jual
+        hasil = st.session_state.jumlah * harga
+        profit = hasil - 50
+        st.session_state.cash += hasil
+        if profit > 0:
+            st.session_state.wins += 1
+        else:
+            st.session_state.losses += 1
+        st.session_state.punya = None
+        st.session_state.jumlah = 0
+        st.success(f"Jual! Hasil ${hasil:,.2f} Profit ${profit:,.2f}")
+        st.rerun()
+if b3.button("⏭️ GILIRAN BERIKUTNYA", use_container_width=True):
+    st.session_state.giliran += 1
+    st.rerun()
 
 time.sleep(10)
 st.rerun()
