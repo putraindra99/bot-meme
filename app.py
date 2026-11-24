@@ -29,8 +29,8 @@ div[data-testid="stMetric"] { background: #0a0f1e; border: 1px solid #1e2a4a; bo
 # --- STATE ---
 if "cash" not in st.session_state:
     st.session_state.cash=1000.0; st.session_state.punya=None; st.session_state.beli=0; st.session_state.jumlah=0
-    st.session_state.log=[]; st.session_state.hist=[1000.0]; st.session_state.wins=71; st.session_state.losses=33; st.session_state.scan=0; st.session_state.trades=104
-    st.session_state.rugs=109; st.session_state.checked=1392
+    st.session_state.log=[]; st.session_state.hist=[1000.0]; st.session_state.wins=0; st.session_state.losses=0; st.session_state.scan=0; st.session_state.trades=0
+    st.session_state.rugs=0; st.session_state.checked=0
 if st.button("🔄 RESET TERMINAL"):
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
