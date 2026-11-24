@@ -1,21 +1,26 @@
 import streamlit as st, urllib.request, json, time
 import pandas as pd
-st.set_page_config(page_title="Grok Bot Terminal - REAL v12.2", page_icon="⚪", layout="wide")
+st.set_page_config(page_title="Grok Bot Terminal - NEON BLUE", page_icon="💙", layout="wide")
 st.markdown("""
 <style>
-.stApp { background-color: #fafafa; color: #1a1a1a; }
-.agent-card { background: white; border: 1px solid #e8e8e8; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-.top-card { background: white; border: 1px solid #e8e8e8; border-radius: 10px; padding: 10px; text-align: center; }
-.flow-card { background: white; border: 1px solid #e8e8e8; border-radius: 10px; padding: 12px; }
-.trade-card { background: white; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px; }
-.big-num { font-size: 32px; font-weight: 800; line-height: 1; }
-.small-label { font-size: 11px; color: #888; }
-.green { color: #00c853; } .red { color: #e74c3c; }
+.stApp { background: radial-gradient(ellipse at top, #0a1a4a 0%, #0a0e27 50%, #050816 100%) !important; color: #e0f0ff !important; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.stApp * { color: #e0f0ff !important; }
+.agent-card { background: rgba(0, 80, 255, 0.12) !important; border: 1px solid #00bfff !important; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 0 15px rgba(0,191,255,0.3), inset 0 0 15px rgba(0,191,255,0.1); }
+.top-card { background: rgba(0, 80, 255, 0.15) !important; border: 1px solid #00bfff !important; border-radius: 10px; padding: 10px; text-align: center; box-shadow: 0 0 12px rgba(0,191,255,0.4); }
+.flow-card { background: rgba(0, 80, 255, 0.12) !important; border: 1px solid #00bfff !important; border-radius: 10px; padding: 12px; box-shadow: 0 0 15px rgba(0,191,255,0.3); }
+.trade-card { background: rgba(0, 80, 255, 0.12) !important; border: 1px solid #00bfff !important; border-radius: 10px; padding: 14px; box-shadow: 0 0 15px rgba(0,191,255,0.3); }
+.big-num { font-size: 32px; font-weight: 800; line-height: 1; color: #00ffff !important; text-shadow: 0 0 10px #00ffff; }
+.small-label { font-size: 11px; color: #7dd3fc !important; }
+.green { color: #00ff88 !important; text-shadow: 0 0 8px #00ff88; }
+.red { color: #ff3b5c !important; text-shadow: 0 0 8px #ff3b5c; }
+.stButton button { background: #00bfff !important; color: #000 !important; border: none !important; font-weight: 800 !important; box-shadow: 0 0 15px #00bfff !important; }
+.stDataFrame, .stCode { background: rgba(0,20,60,0.8) !important; }
+code { color: #00ffff !important; background: rgba(0,20,60,0.8) !important; }
 </style>
 """, unsafe_allow_html=True)
 
 if "cash" not in st.session_state:
-    st.session_state.cash=10000.0; st.session_state.punya=None; st.session_state.beli=0; st.session_state.jumlah=0; st.session_state.mint=None
+    st.session_state.cash=10000.0; st.session_state.punya=None; st.session_state.beli=0; st.session_state.jumlah=0; st.session_state.mint=None; st.session_state.modal_invested=0
     st.session_state.log=[]; st.session_state.wins=0; st.session_state.losses=0; st.session_state.scan=0; st.session_state.trades=0; st.session_state.hold=0; st.session_state.last_coins=[]; st.session_state.start_time=time.time(); st.session_state.line_no=57
 if st.button("🔄 RESET"):
     for k in list(st.session_state.keys()): del st.session_state[k]
@@ -29,24 +34,18 @@ def get_json_debug(u):
     except Exception as e:
         return None, str(e)[:120]
 
-# === v12.2 FIX: SOL DARI COINGECKO + BINANCE, BUKAN DEXSREENER! ===
 sol_price=0; sol_src="?"
-# 1. CoinGecko - harga SPOT REAL
 d1,_=get_json_debug("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true")
 if d1 and d1.get("solana"):
     sol_price=float(d1["solana"].get("usd",0) or 0); sol_src="CoinGecko REAL"
-# 2. Kalo CoinGecko gagal, Binance
 if sol_price==0:
     d2,_=get_json_debug("https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT")
     if d2 and d2.get("price"):
         sol_price=float(d2.get("price",0) or 0); sol_src="Binance REAL"
-# 3. Kalo dua-duanya gagal, JANGAN NGARANG, tulis 0
-sol_chg=0
-if d1 and d1.get("solana"):
-    sol_chg=float(d1["solana"].get("usd_24h_change",0) or 0)
+sol_chg=float(d1["solana"].get("usd_24h_change",0) or 0) if d1 and d1.get("solana") else 0
 
 now_ms=int(time.time()*1000)
-all_coins=[]; debug_lines=[]; dibuang_palsu=0
+semua_pair=[]; debug_lines=[]; dibuang_palsu=0
 KEYWORDS=["solana","pump","bonk","meme","wif","pepe","doge","cat","moon","trump"]
 for q in KEYWORDS:
     data_api, err = get_json_debug(f"https://api.dexscreener.com/latest/dex/search/?q={q}")
@@ -55,37 +54,48 @@ for q in KEYWORDS:
     for p in data_api.get("pairs",[])[:30]:
         try:
             if p.get("chainId")!="solana": continue
-            # FIX PALSU: WAJIB LIQUIDITY >$10K! Coin palsu liq nya 0-100 doang!
             liq=float(p.get("liquidity",{}).get("usd",0) or 0)
-            if liq<10000:
-                dibuang_palsu+=1; continue
-            tx=p.get("txns",{}).get("h24",{})
-            mc=float(p.get("marketCap",0) or p.get("fdv",0) or 0)
-            sym=p.get("baseToken",{}).get("symbol","?")
-            price=float(p.get("priceUsd",0) or 0)
-            vol=float(p.get("volume",{}).get("h24",0) or 0)
-            chg=float(p.get("priceChange",{}).get("h24",0) or 0)
-            # FIX: Tolak SOL palsu - SOL asli alamatnya So111... kalo bukan itu, itu CLONE!
+            if liq<10000: dibuang_palsu+=1; continue
             mint_cek=p.get("baseToken",{}).get("address","")
+            if not mint_cek: continue
+            sym=p.get("baseToken",{}).get("symbol","?")
             if sym=="SOL" and mint_cek!="So11111111111111111111111111111111111111112": continue
-            if not sym or sym=="?" or price<=0 or vol<=0: continue
-            if any(x.get("nama")==sym and x.get("mint")==mint_cek for x in all_coins): continue
-            all_coins.append({"nama":sym,"harga":price,"vol":int(vol),"vol_mult":round(vol/50000,1),"chg1h":round(chg,1),"txns":int(tx.get("buys",0)+tx.get("sells",0)),"buys":int(tx.get("buys",0)),"umur":f"{round((now_ms-p.get('pairCreatedAt',now_ms))/60000)}m","umur_min":(now_ms-p.get("pairCreatedAt",now_ms))/60000,"src":"DEX-REAL-LIQ10K","mcap":int(mc),"mint":mint_cek,"liq":int(liq)})
+            semua_pair.append(p)
         except: continue
+best_by_mint={}
+for p in semua_pair:
+    mint_cek=p.get("baseToken",{}).get("address","")
+    liq=float(p.get("liquidity",{}).get("usd",0) or 0)
+    if mint_cek not in best_by_mint or liq>best_by_mint[mint_cek][0]:
+        best_by_mint[mint_cek]=(liq,p)
+all_coins=[]
+for mint_cek,(liq,p) in best_by_mint.items():
+    try:
+        tx=p.get("txns",{}).get("h24",{})
+        mc=float(p.get("marketCap",0) or p.get("fdv",0) or 0)
+        sym=p.get("baseToken",{}).get("symbol","?")
+        price=float(p.get("priceUsd",0) or 0)
+        vol=float(p.get("volume",{}).get("h24",0) or 0)
+        chg=float(p.get("priceChange",{}).get("h24",0) or 0)
+        if not sym or sym=="?" or price<=0 or vol<=0: continue
+        umur_min=(now_ms-p.get("pairCreatedAt",now_ms))/60000
+        umur_txt=f"{round(umur_min)}m" if umur_min<60 else f"{round(umur_min/60,1)}h" if umur_min<1440 else f"{round(umur_min/1440,1)}d"
+        all_coins.append({"nama":sym,"harga":price,"vol":int(vol),"vol_mult":round(vol/50000,1),"chg1h":round(chg,1),"txns":int(tx.get("buys",0)+tx.get("sells",0)),"buys":int(tx.get("buys",0)),"umur":umur_txt,"umur_min":umur_min,"src":"DEX-REAL-1MINT","mcap":int(mc),"mint":mint_cek,"liq":int(liq)})
+    except: continue
 
 coins=[c for c in all_coins if c.get("vol",0)>=5000]
 coins=sorted(coins, key=lambda x: x.get("vol",0), reverse=True)[:20]
 total_scan=len(all_coins)
 st.session_state.scan+=1
 modal_pct=0.34
-modal=st.session_state.cash*modal_pct
+modal_baru=st.session_state.cash*modal_pct
+modal_display=st.session_state.modal_invested if st.session_state.punya else modal_baru
 tp=20.0; sl=-10.0; max_hold=12
 equity=st.session_state.cash
 def get_real_price(mint):
     if not mint: return None
     data_api,_=get_json_debug(f"https://api.dexscreener.com/latest/dex/tokens/{mint}")
     if data_api and data_api.get("pairs"):
-        # Ambil pair dengan LIQUIDITY paling gede, bukan yang pertama!
         best=None; best_liq=-1
         for pp in data_api.get("pairs",[]):
             if pp.get("chainId")!="solana": continue
@@ -104,23 +114,24 @@ if st.session_state.punya:
     elif pnl<=sl: jual=True; alasan=f"SL REAL {pnl:.1f}%"
     elif st.session_state.hold>=max_hold: jual=True; alasan=f"HOLD 2m REAL {pnl:.1f}%"
     if jual:
-        hasil=st.session_state.jumlah*harga_skrg; profit=hasil-modal; st.session_state.cash+=hasil
+        hasil=st.session_state.jumlah*harga_skrg; modal_pakai=st.session_state.modal_invested if st.session_state.modal_invested>0 else modal_baru; profit=hasil-modal_pakai; st.session_state.cash+=hasil
         st.session_state.log.append((time.strftime("%H:%M"),"EXIT",st.session_state.punya,profit,hasil,alasan,"TP" if profit>0 else "SL"))
         if profit>0: st.session_state.wins+=1
         else: st.session_state.losses+=1
         st.session_state.trades+=1; st.session_state.line_no+=1
         st.session_state.last_coins.append(st.session_state.punya); st.session_state.last_coins=st.session_state.last_coins[-3:]
-        st.session_state.punya=None; st.session_state.jumlah=0; st.session_state.hold=0; st.session_state.mint=None; equity=st.session_state.cash
+        st.session_state.punya=None; st.session_state.jumlah=0; st.session_state.hold=0; st.session_state.mint=None; st.session_state.modal_invested=0; equity=st.session_state.cash
 else:
     top=None
     for cc in coins:
         if cc.get("nama") not in st.session_state.last_coins: top=cc; break
     if top is None: top=coins[0] if coins else None
-    if top and st.session_state.cash>=modal:
+    if top and st.session_state.cash>=modal_baru:
         rh=get_real_price(top.get("mint","")) or top.get("harga",0)
-        st.session_state.cash-=modal; st.session_state.punya=top.get("nama"); st.session_state.beli=rh; st.session_state.jumlah=modal/rh if rh else 0; st.session_state.hold=0; st.session_state.mint=top.get("mint","")
-        st.session_state.log.append((time.strftime("%H:%M"),"ENTER",top.get("nama"),0,modal,f"34% of ${st.session_state.cash+modal:.2f} - HARGA REAL {rh:.6f} LIQ ${top.get('liq',0):,}","BUY"))
-        st.session_state.line_no+=1; equity=st.session_state.cash+modal
+        st.session_state.modal_invested=modal_baru
+        st.session_state.cash-=modal_baru; st.session_state.punya=top.get("nama"); st.session_state.beli=rh; st.session_state.jumlah=modal_baru/rh if rh else 0; st.session_state.hold=0; st.session_state.mint=top.get("mint","")
+        st.session_state.log.append((time.strftime("%H:%M"),"ENTER",top.get("nama"),0,modal_baru,f"34% of ${st.session_state.cash+modal_baru:.2f} - HARGA REAL {rh:.6f} LIQ ${top.get('liq',0):,}","BUY"))
+        st.session_state.line_no+=1; equity=st.session_state.cash+modal_baru
 
 elapsed=time.time()-st.session_state.start_time
 hh=int(elapsed//3600); mm=int((elapsed%3600)//60); ss=int(elapsed%60)
@@ -129,19 +140,19 @@ EMPTY={"nama":"-","harga":0,"vol":0,"vol_mult":0,"chg1h":0,"src":"-","mcap":0,"u
 while len(top4)<4: top4.append(dict(EMPTY))
 cur_name=st.session_state.punya or top4[0].get("nama","-")
 cur_entry=st.session_state.beli if st.session_state.punya else top4[0].get("harga",0)
-cur_pnl=(equity-(st.session_state.cash+modal))/modal*100 if st.session_state.punya and modal else 0
+cur_pnl=(equity-(st.session_state.cash+modal_display))/modal_display*100 if st.session_state.punya and modal_display else 0
 api_ok = total_scan>0
-st.markdown(f"### <span style='color:#2196f3'>Grok Bot</span> Terminal <span style='font-size:11px;background:#f0f0f0;padding:2px 6px;border-radius:4px'>v12.2-FIX SOL</span> &nbsp; <span style='font-size:12px;color:#e65100'>● running {hh:02d}:{mm:02d}:{ss:02d}</span> &nbsp; <span style='font-size:11px;background:#f5f5f5;border:1px solid #ddd;padding:3px 8px;border-radius:4px'>EXECUTOR · ENTERED ${cur_name}</span>", unsafe_allow_html=True)
-st.markdown(f"<div style='background:#e8f5e9;border:1px solid #00c853;border-radius:10px;padding:12px'><b>💜 SOL REAL: ${sol_price:.2f} ({sol_chg:+.1f}% 24h) - Sumber: {sol_src}</b> &nbsp; | &nbsp; ✅ Cek di CoinGecko / Binance, HARUS SAMA! Kalo beda, screenshotin lagi! &nbsp; | &nbsp; 🗑️ Coin palsu dibuang: {dibuang_palsu} (LIQ &lt;$10K)</div>", unsafe_allow_html=True)
+st.markdown(f"### <span style='color:#00ffff'>💙 Grok Bot</span> <span style='color:#00bfff'>Terminal</span> <span style='font-size:11px;background:#001a4a;padding:2px 6px;border-radius:4px;color:#00ffff !important'>v12.5-NEON BLUE</span> &nbsp; <span style='font-size:12px;color:#00ff88 !important'>● running {hh:02d}:{mm:02d}:{ss:02d}</span> &nbsp; <span style='font-size:11px;background:#001a4a;padding:3px 8px;border-radius:4px;color:#00ffff !important'>EXECUTOR · ENTERED ${cur_name}</span>", unsafe_allow_html=True)
+st.markdown(f"<div style='background:rgba(0,100,255,0.2);border:1px solid #00bfff;border-radius:10px;padding:12px;box-shadow:0 0 20px #00bfff'><b style='color:#00ffff !important'>💜 SOL REAL: ${sol_price:.2f} ({sol_chg:+.1f}% 24h) - Sumber: {sol_src}</b> &nbsp; | &nbsp; 🗑️ Palsu dibuang: {dibuang_palsu} &nbsp; | &nbsp; ✅ FIX: Modal tersimpan + 1 MINT = 1 COIN</div>", unsafe_allow_html=True)
 c1,c2,c3=st.columns(3)
 with c1: st.markdown(f"<div class='big-num'>${equity:,.2f}</div><div class='small-label'>balance</div><div class='big-num green' style='font-size:26px'>{st.session_state.wins}</div><div class='small-label'>wins</div>", unsafe_allow_html=True)
 with c2: st.markdown(f"<div class='big-num'>{st.session_state.trades}</div><div class='small-label'>trades</div><div class='big-num red' style='font-size:26px'>{st.session_state.losses}</div><div class='small-label'>losses</div>", unsafe_allow_html=True)
-with c3: st.markdown(f"<div style='font-size:14px'><b>STATUS:</b> {'✅ REAL - '+str(total_scan)+' COIN ASLI LIQ>10K' if api_ok else '❌ GAGAL'}<br><small>NO RANDOM · NO DUMMY · SOL dari CoinGecko</small></div>", unsafe_allow_html=True)
+with c3: st.markdown(f"<div style='font-size:14px'><b>STATUS:</b> {'✅ REAL - '+str(total_scan)+' COIN UNIK' if api_ok else '❌ GAGAL'}<br><small style='color:#7dd3fc !important'>Modal tersimpan: ${st.session_state.modal_invested:,.2f}</small></div>", unsafe_allow_html=True)
 left,right=st.columns([1,2.2])
 with left:
-    st.markdown(f"<div class='agent-card'><b>📄 SCANNER</b><div>dex/search REAL LIQ>10K</div><div>next ${top4[1].get('nama','-')} · vol {top4[1].get('vol_mult',0):.1f}x</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='agent-card'><b>📄 SCANNER</b><div style='font-size:11px;color:#7dd3fc !important'>dex/search REAL 1 MINT = 1 COIN</div><div>next ${top4[1].get('nama','-')} · vol {top4[1].get('vol_mult',0):.1f}x</div></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='agent-card'><b>⚠️ RUG CHECK</b><div>passed ${cur_name} · LIQ>10K</div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='agent-card'><b>💎 SIZER</b><div>34% of ${equity:,.2f} = ${modal:,.2f}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='agent-card'><b>💎 SIZER</b><div>34% of ${equity:,.2f} = ${modal_display:,.2f}</div></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='agent-card'><b>🟢 EXECUTOR</b><div>LONG ${cur_name} · TP +20% SL -10%</div></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='agent-card'><b>📝 LOGGER</b><div>Line #{st.session_state.line_no}</div></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='agent-card'><b>💧 EQUITY</b><div>${equity:,.2f} · {st.session_state.trades} closes</div></div>", unsafe_allow_html=True)
@@ -149,15 +160,15 @@ with left:
 with right:
     cc1,cc2,cc3,cc4=st.columns(4)
     for col, c in zip([cc1,cc2,cc3,cc4], top4):
-        with col: st.markdown(f"<div class='top-card'><b>${c.get('nama','-')}</b><div style='font-size:11px;color:#888'>vol {c.get('vol_mult',0):.1f}x · +{c.get('chg1h',0):.0f}% · LIQ ${c.get('liq',0):,}</div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='flow-card' style='margin-top:10px'><b>${cur_name} · +{cur_pnl:.2f}% live REAL</b><br><small>SOL ${sol_price:.2f} dari {sol_src} - cek sendiri!</small><div style='display:flex;gap:8px;margin-top:8px'><div style='flex:1;background:#fff8e1;padding:8px;border-radius:8px'><b>FILTERED</b><div style='font-size:20px;font-weight:800'>{max(0,total_scan-len(coins))}</div></div><div style='flex:1;background:#f5f5f5;padding:8px;border-radius:8px'><b>SIZER</b><div style='font-size:20px;font-weight:800'>34% eq</div><div>${modal:,.2f}</div></div><div style='flex:1;background:#f5f5f5;padding:8px;border-radius:8px'><b>LOGGER</b><div style='font-size:20px;font-weight:800'>line #{st.session_state.line_no}</div></div><div style='flex:1;background:#e3f2fd;padding:8px;border-radius:8px'><b>EQUITY</b><div style='font-size:20px;font-weight:800;color:#00c853'>+${equity-10000:,.2f}</div></div></div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;gap:10px;margin-top:10px'><div class='trade-card' style='flex:1'><b>TRADE · ENTRY vs EXIT - REAL</b><div style='display:flex;justify-content:space-between;margin-top:8px'><b style='font-size:20px'>${cur_name}</b><b class='green'>+{cur_pnl:.2f}% live REAL</b></div><div style='font-size:13px;margin-top:6px'>entry {cur_entry:.6f} REAL<br>size 34% eq · ${modal:,.2f}</div></div><div class='trade-card' style='flex:1'><b>$ tail -f trades.log</b><div style='font-size:12px;margin-top:8px'>" + "<br>".join([f"{r[0]} {r[1]} ${r[2]} {r[3]:+.2f} net" if r[1]=="EXIT" else f"{r[0]} {r[1]} ${r[2]} ${r[4]:,.2f}" for r in reversed(st.session_state.log[-4:])]) + "</div></div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='trade-card' style='margin-top:10px'><b>RESULT</b><div style='display:flex;justify-content:space-between'><span>START</span><b>$10,000.00</b></div><div style='display:flex;justify-content:space-between'><span>NOW</span><b>${equity:,.2f}</b></div><div style='font-size:11px;color:#888'>{st.session_state.wins} W / {st.session_state.losses} L · NET +${equity-10000:,.2f}</div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='trade-card' style='margin-top:10px'><b>TRADE LOG</b>" + "".join([f"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0'><span>{r[0]} {r[1]} <b>${r[2]}</b></span><span>{r[3]:+.2f}</span></div>" for r in reversed(st.session_state.log[-5:])]) + "</div>", unsafe_allow_html=True)
+        with col: st.markdown(f"<div class='top-card'><b>${c.get('nama','-')}</b><div style='font-size:11px;color:#7dd3fc !important'>vol {c.get('vol_mult',0):.1f}x · +{c.get('chg1h',0):.0f}% · LIQ ${c.get('liq',0):,}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='flow-card' style='margin-top:10px'><b>${cur_name} · +{cur_pnl:.2f}% live REAL</b><br><small style='color:#7dd3fc !important'>SOL ${sol_price:.2f} dari {sol_src} · Modal tersimpan ${st.session_state.modal_invested:,.2f}</small><div style='display:flex;gap:8px;margin-top:8px'><div style='flex:1;background:rgba(0,100,255,0.2);padding:8px;border-radius:8px;border:1px solid #00bfff'><b>COIN UNIK</b><div style='font-size:20px;font-weight:800;color:#00ffff !important'>{total_scan}</div></div><div style='flex:1;background:rgba(0,100,255,0.2);padding:8px;border-radius:8px;border:1px solid #00bfff'><b>SIZER</b><div style='font-size:20px;font-weight:800;color:#00ffff !important'>34% eq</div><div>${modal_display:,.2f}</div></div><div style='flex:1;background:rgba(0,100,255,0.2);padding:8px;border-radius:8px;border:1px solid #00bfff'><b>LOGGER</b><div style='font-size:20px;font-weight:800;color:#00ffff !important'>line #{st.session_state.line_no}</div></div><div style='flex:1;background:rgba(0,100,255,0.2);padding:8px;border-radius:8px;border:1px solid #00bfff'><b>EQUITY</b><div style='font-size:20px;font-weight:800;color:#00ff88 !important'>+${equity-10000:,.2f}</div></div></div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='display:flex;gap:10px;margin-top:10px'><div class='trade-card' style='flex:1'><b>TRADE · ENTRY vs EXIT - REAL</b><div style='display:flex;justify-content:space-between;margin-top:8px'><b style='font-size:20px'>${cur_name}</b><b class='green'>+{cur_pnl:.2f}% live REAL</b></div><div style='font-size:13px;margin-top:6px'>entry {cur_entry:.6f} REAL<br>size 34% eq · ${modal_display:,.2f}</div></div><div class='trade-card' style='flex:1'><b>$ tail -f trades.log</b><div style='font-size:12px;margin-top:8px'>" + "<br>".join([f"{r[0]} {r[1]} ${r[2]} {r[3]:+.2f} net" if r[1]=="EXIT" else f"{r[0]} {r[1]} ${r[2]} ${r[4]:,.2f}" for r in reversed(st.session_state.log[-4:])]) + "</div></div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='trade-card' style='margin-top:10px'><b>RESULT</b><div style='display:flex;justify-content:space-between'><span>START</span><b>$10,000.00</b></div><div style='display:flex;justify-content:space-between'><span>NOW</span><b>${equity:,.2f}</b></div><div style='font-size:11px;color:#7dd3fc !important'>{st.session_state.wins} W / {st.session_state.losses} L · NET +${equity-10000:,.2f}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='trade-card' style='margin-top:10px'><b>TRADE LOG</b>" + "".join([f"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,191,255,0.3)'><span>{r[0]} {r[1]} <b>${r[2]}</b></span><span>{r[3]:+.2f}</span></div>" for r in reversed(st.session_state.log[-5:])]) + "</div>", unsafe_allow_html=True)
     st.markdown("### 🔍 DEBUG API", unsafe_allow_html=True)
     for line in debug_lines: st.code(line)
     if coins:
-        tabel_coins=pd.DataFrame([{"Coin":c.get("nama"),"Harga REAL":c.get("harga"),"Naik 24h %":c.get("chg1h"),"Vol 24h":c.get("vol"),"LIQ $":c.get("liq"),"Mcap":c.get("mcap"),"Umur":c.get("umur"),"Sumber":c.get("src")} for c in coins])
+        tabel_coins=pd.DataFrame([{"Coin":c.get("nama"),"Harga REAL":c.get("harga"),"Naik 24h %":c.get("chg1h"),"Vol 24h":c.get("vol"),"LIQ $":c.get("liq"),"Mcap":c.get("mcap"),"Umur":c.get("umur"),"Mint":str(c.get("mint",""))[:12]+"..."} for c in coins])
         st.dataframe(tabel_coins, use_container_width=True, hide_index=True)
-    st.markdown("<div style='font-size:11px;color:#888'>v12.2 FIX SOL - SOL dari CoinGecko/Binance REAL - Coin palsu LIQ<10K dibuang - NO RANDOM</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:11px;color:#7dd3fc !important'>v12.5 NEON BLUE - Background Biru Neon - Modal Fix - Dedup Fix - SOL CoinGecko REAL</div>", unsafe_allow_html=True)
 time.sleep(10); st.rerun()
