@@ -47,6 +47,7 @@ def tambah(sym, price, chg, vol, txns, buys, age_min, src, mcap=0):
     if any(x["nama"]==sym for x in all_coins): return
     all_coins.append({"nama":sym,"harga":float(price),"ramai":int(vol),"fomo":round(min(5+abs(chg)/2+vol/50000,20),1),"chg1h":round(float(chg),1),"vol":int(vol),"txns":int(txns),"buys":int(buys),"umur":f"{round(age_min)}m" if age_min<60 else f"{round(age_min/60,1)}j","src":src,"mcap":int(mcap)})
 
+# === v7.0 - PAKE VOLUME 24JAM + NAIK 24JAM BIAR SAMA KAYAK DEXscreener ===
 try:
     d=get_json("https://api.dexscreener.com/latest/dex/pairs/solana?limit=50")
     if not d: d=get_json("https://api.dexscreener.com/latest/dex/search/?q=solana")
@@ -54,20 +55,20 @@ try:
     for p in pairs[:50]:
         try:
             if p.get("chainId")!="solana": continue
-            tx=p.get("txns",{}).get("h1",{})
+            tx=p.get("txns",{}).get("h24",{})
             mc = float(p.get("marketCap",0) or p.get("fdv",0) or 0)
-            tambah(p.get("baseToken",{}).get("symbol","?"), float(p.get("priceUsd",0) or 0), float(p.get("priceChange",{}).get("h1",0) or 0), float(p.get("volume",{}).get("h1",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-p.get("pairCreatedAt",now_ms))/60000, "DEX-TREND", mc)
+            tambah(p.get("baseToken",{}).get("symbol","?"), float(p.get("priceUsd",0) or 0), float(p.get("priceChange",{}).get("h24",0) or 0), float(p.get("volume",{}).get("h24",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-p.get("pairCreatedAt",now_ms))/60000, "DEX-TREND", mc)
         except: continue
 except: pass
-for q in ["solana","meme","pump","bonk","wif","pepe","doge","cat","ai","moon","pepe"]:
+for q in ["solana","meme","pump","bonk","wif","pepe","doge","cat","ai","moon"]:
     d=get_json(f"https://api.dexscreener.com/latest/dex/search/?q={q}")
     if not d: continue
     for p in d.get("pairs",[])[:30]:
         try:
             if p.get("chainId")!="solana": continue
-            tx=p.get("txns",{}).get("h1",{})
+            tx=p.get("txns",{}).get("h24",{})
             mc = float(p.get("marketCap",0) or p.get("fdv",0) or 0)
-            tambah(p.get("baseToken",{}).get("symbol","?"), float(p.get("priceUsd",0) or 0), float(p.get("priceChange",{}).get("h1",0) or 0), float(p.get("volume",{}).get("h1",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-p.get("pairCreatedAt",now_ms))/60000, "AXIOM", mc)
+            tambah(p.get("baseToken",{}).get("symbol","?"), float(p.get("priceUsd",0) or 0), float(p.get("priceChange",{}).get("h24",0) or 0), float(p.get("volume",{}).get("h24",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-p.get("pairCreatedAt",now_ms))/60000, "AXIOM", mc)
         except: continue
 try:
     d=get_json("https://frontend-api.pump.fun/coins?offset=0&limit=50&sort=created_timestamp&order=DESC&includeNsfw=false")
@@ -80,9 +81,9 @@ try:
                 if not p or not p.get("pairs"): continue
                 pair=p["pairs"][0]
                 if pair.get("chainId")!="solana": continue
-                tx=pair.get("txns",{}).get("h1",{})
+                tx=pair.get("txns",{}).get("h24",{})
                 mc = float(pair.get("marketCap",0) or pair.get("fdv",0) or 0)
-                tambah(sym, float(pair.get("priceUsd",0) or 0), float(pair.get("priceChange",{}).get("h1",0) or 0), float(pair.get("volume",{}).get("h1",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-cc.get("created_timestamp",0))/60000, "PUMP", mc)
+                tambah(sym, float(pair.get("priceUsd",0) or 0), float(pair.get("priceChange",{}).get("h24",0) or 0), float(pair.get("volume",{}).get("h24",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-cc.get("created_timestamp",0))/60000, "PUMP", mc)
             except: continue
 except: pass
 try:
@@ -96,40 +97,18 @@ try:
                 if not p: continue
                 for pair in p.get("pairs",[])[:1]:
                     if pair.get("chainId")!="solana": continue
-                    tx=pair.get("txns",{}).get("h1",{})
+                    tx=pair.get("txns",{}).get("h24",{})
                     mc = float(pair.get("marketCap",0) or pair.get("fdv",0) or 0)
-                    tambah(pair.get("baseToken",{}).get("symbol","?"), float(pair.get("priceUsd",0) or 0), float(pair.get("priceChange",{}).get("h1",0) or 0), float(pair.get("volume",{}).get("h1",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-pair.get("pairCreatedAt",now_ms))/60000, "BOOST", mc)
-            except: continue
-except: pass
-try:
-    d=get_json("https://gmgn.ai/defi/quotation/v1/rank/solana/swaps/1h")
-    if d and d.get("data"):
-        for it in d["data"].get("rank",[])[:30]:
-            try:
-                tk=it.get("token",{})
-                mc = float(tk.get("market_cap",0) or 0)
-                tambah(tk.get("symbol","?"), float(tk.get("price",0) or 0), float(it.get("price_change_percent",0) or 0), float(it.get("volume",0) or 0), int(it.get("swaps",0) or 0), int(it.get("swaps",0) or 0), 30, "GMGN", mc)
+                    tambah(pair.get("baseToken",{}).get("symbol","?"), float(pair.get("priceUsd",0) or 0), float(pair.get("priceChange",{}).get("h24",0) or 0), float(pair.get("volume",{}).get("h24",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-pair.get("pairCreatedAt",now_ms))/60000, "BOOST", mc)
             except: continue
 except: pass
 
-# === v6.9 - MONSTER PUMP 300% - 3000% ===
+# === FILTER KETAT, NO FALLBACK NGASAL ===
 coins=[c for c in all_coins if 300<=c["chg1h"]<=3000 and 50000<=c["mcap"]<=3000000 and 150000<=c["vol"]<=4000000 and c["txns"]>=100 and c["buys"]>=50]
-level="MONSTER 300%-3000% MCAP 50K-3M VOL 150K-4M"
+level="MONSTER 24JAM 300%-3000% MCAP 50K-3M VOL 150K-4M"
+# Kalo kosong, JANGAN tampilkan coin ngasal - biarin kosong, bot nunggu!
 if not coins:
-    coins=[c for c in all_coins if 100<=c["chg1h"]<=3000 and 50000<=c["mcap"]<=3000000 and c["vol"]>=100000]
-    level="MONSTER LONGGAR 100%+"
-if not coins:
-    coins=[c for c in all_coins if c["chg1h"]>0 and c["vol"]>=50000]
-    level="UPTREND ONLY"
-if not coins:
-    coins=[c for c in all_coins if c["vol"]>=10000]
-    level="RAME $10K+"
-if not coins:
-    coins=all_coins[:20]
-    level="SEMUA"
-if not coins:
-    coins=[{"nama":"SOL","harga":186.7,"ramai":100000,"fomo":10,"chg1h":2.1,"vol":100000,"txns":1000,"buys":500,"umur":"-","src":"CADANGAN","mcap":1000000}]
-    level="CADANGAN"
+    level="NUNGGU MONSTER - GAK ADA YANG LOLOS FILTER!"
 coins=sorted(coins, key=lambda x: x["chg1h"], reverse=True)[:20]
 st.session_state.scan+=1; st.session_state.checked+=len(coins)
 
@@ -175,7 +154,7 @@ else:
     if top is None: top=coins[0] if coins else None
     if top and st.session_state.cash>=modal:
         st.session_state.cash-=modal; st.session_state.punya=top["nama"]; st.session_state.beli=top["harga"]; st.session_state.jumlah=modal/top["harga"]; st.session_state.hold=0
-        st.session_state.log.append((time.strftime("%H:%M"),"FIRE",top["nama"],f"BELI $500 - {top['src']} - MCAP ${top['mcap']:,} - VOL ${top['vol']:,} - NAIK {top['chg1h']}%","BUY",0))
+        st.session_state.log.append((time.strftime("%H:%M"),"FIRE",top["nama"],f"BELI $500 - {top['src']} - MCAP ${top['mcap']:,} - VOL24 ${top['vol']:,} - NAIK24 {top['chg1h']}%","BUY",0))
         equity=st.session_state.cash+modal
 st.session_state.hist.append(equity)
 winrate=int(st.session_state.wins/(st.session_state.wins+st.session_state.losses)*100) if (st.session_state.wins+st.session_state.losses)>0 else 0
@@ -183,7 +162,7 @@ top=coins[0] if coins else {"nama":"-","fomo":0,"vol":0,"txns":0,"buys":0,"mcap"
 cuan=equity-10000.0
 cuan_color="#00ff88" if cuan>=0 else "#ff2d55"
 
-st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v6.9-MONSTER 300-3000%</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>", unsafe_allow_html=True)
+st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v7.0-VOL 24JAM</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>", unsafe_allow_html=True)
 c1,c2,c3=st.columns(3)
 with c1: st.markdown(f"<div class='topbox'><small>💰 MODAL</small><br><div class='bigbal' style='color:#00d4ff'>$10,000.00</div><small>Per Trade $500 · TP +{tp}% · SL {sl}%</small></div>", unsafe_allow_html=True)
 with c2: st.markdown(f"<div class='topbox'><small>📈 CUAN</small><br><div class='bigbal' style='color:{cuan_color}'>{'+' if cuan>=0 else ''}${cuan:,.2f}</div><small>{st.session_state.wins} WIN · {st.session_state.losses} LOSS · {winrate}% WR</small></div>", unsafe_allow_html=True)
@@ -192,7 +171,7 @@ with c3: st.markdown(f"<div class='topbox'><small>🏦 EQUITY</small><br><div cl
 left, right = st.columns([1, 2.2])
 with left:
     st.markdown(f"<div class='card radar'><b>👁️ RADAR</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>DEX-TREND + PUMP + GMGN + AXIOM<br>LEVEL: {level}</small><br><small style='color:#00d4ff'>paling pump: {top['nama']} +{top['chg1h']}% · MCAP ${top['mcap']:,}</small></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>MONSTER ONLY!<br>NAIK 300%-3000% · MCAP 50K-3M · VOL 150K-4M</small></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>MONSTER 24JAM ONLY!<br>NAIK 300%-3000% · MCAP 50K-3M · VOL24 150K-4M</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trigger'><b>⚡ TRIGGER</b> <span class='badge' style='background:#ffcc00;color:black;float:right'>ARMED</span><br><small>auto FIRE - ANTI BOSEN<br>skip 3 coin terakhir!</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card orca'><b>🐋 ORCA</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>follows smart wallets<br>top pump: {top['nama']}</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trip'><b>🚨 TRIPWIRE</b> <span class='badge' style='background:#ff9500;color:black;float:right'>ARMED</span><br><small>auto jual: TP/SL / GAK MONSTER / 50 DETIK</small></div>", unsafe_allow_html=True)
@@ -203,10 +182,13 @@ with left:
 with right:
     st.markdown(f"<div class='card'><b>NIGHT DESK · SCAN → SHIELD → SCORE → FIRE → LOG</b> <span style='float:right'>checked {st.session_state.checked} · LEVEL {level}</span><br><br>🔍 SCAN → 🛡️ SHIELD → 📊 SCORE → ⚡ FIRE → 📜 LOG<br><br><b>FIRED</b> {st.session_state.trades} | <b>WIN RATE</b> {winrate}% | <b>SCAN KE</b> {st.session_state.scan}</div>", unsafe_allow_html=True)
     if st.session_state.punya: st.success(f"🤲 PEGANG: {st.session_state.punya} | Beli ${st.session_state.beli:.6f} REAL | HOLD {st.session_state.hold}/5 | TP +{tp}% / SL {sl}%")
-    else: st.info("⏳ Bot lagi nyari coin MONSTER...")
-    st.markdown("### 🔥 COIN MONSTER - NAIK 300%-3000% - MCAP 50K-3M - VOL 150K-4M")
-    df=pd.DataFrame([{"#":i+1,"Coin":c["nama"],"Harga REAL":c["harga"],"Naik 1h %":c["chg1h"],"Mcap $":c["mcap"],"Volume 1h $":c["vol"],"Txns 1h":c["txns"],"Buys":c["buys"],"Umur":c["umur"],"Sumber":c["src"]} for i,c in enumerate(coins)])
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    else: st.info("⏳ Bot lagi nyari coin MONSTER 24JAM...")
+    st.markdown("### 🔥 COIN MONSTER 24JAM - NAIK 300%-3000% - MCAP 50K-3M - VOL24 150K-4M")
+    if coins:
+        df=pd.DataFrame([{"#":i+1,"Coin":c["nama"],"Harga REAL":c["harga"],"Naik 24h %":c["chg1h"],"Mcap $":c["mcap"],"Volume 24h $":c["vol"],"Txns 24h":c["txns"],"Buys":c["buys"],"Umur":c["umur"],"Sumber":c["src"]} for i,c in enumerate(coins)])
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.warning("⏳ GAK ADA MONSTER YANG LOLOS! Bot lagi nunggu coin naik 300%+ dengan Vol 150K-4M. Sabar, jangan beli coin ngasal!")
     st.line_chart(pd.DataFrame({"Equity":st.session_state.hist}))
     st.markdown("### 📜 LOG - BUY BIRU · TP IJO · SL MERAH · HOLD KUNING")
     if st.session_state.log:
