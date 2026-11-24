@@ -148,7 +148,6 @@ if st.session_state.punya:
     if pnl>=tp or pnl<=sl or jual_paksa!="":
         hasil=st.session_state.jumlah*harga_skrg; profit=hasil-modal; st.session_state.cash+=hasil
         alasan=jual_paksa if jual_paksa else f"TP/SL {pnl:.1f}%"
-        # SIMPAN JENIS: TP / SL / HOLD
         if jual_paksa.startswith("HOLD"): jenis="HOLD"
         elif profit>0: jenis="TP"
         else: jenis="SL"
@@ -175,11 +174,10 @@ top=coins[0] if coins else {"nama":"-","fomo":0,"vol":0,"txns":0,"buys":0}
 cuan=equity-10000.0
 cuan_color="#00ff88" if cuan>=0 else "#ff2d55"
 
-# === HEADER BARU: MODAL | CUAN | EQUITY ===
-st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v6.5-UI BARU</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>")
+st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v6.6-MODAL AWAL</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>")
 c1,c2,c3=st.columns(3)
-with c1: st.markdown(f"<div class='topbox'><small>💰 MODAL PER TRADE</small><br><div class='bigbal' style='color:#00d4ff'>${modal:,.0f}</div><small>TP +{tp}% · SL {sl}%</small></div>", unsafe_allow_html=True)
-with c2: st.markdown(f"<div class='topbox'><small>📈 CUAN TOTAL</small><br><div class='bigbal' style='color:{cuan_color}'>{'+' if cuan>=0 else ''}${cuan:,.2f}</div><small>{st.session_state.wins} WIN · {st.session_state.losses} LOSS · {winrate}% WR</small></div>", unsafe_allow_html=True)
+with c1: st.markdown(f"<div class='topbox'><small>💰 MODAL</small><br><div class='bigbal' style='color:#00d4ff'>$10,000.00</div><small>Per Trade $500 · TP +{tp}% · SL {sl}%</small></div>", unsafe_allow_html=True)
+with c2: st.markdown(f"<div class='topbox'><small>📈 CUAN</small><br><div class='bigbal' style='color:{cuan_color}'>{'+' if cuan>=0 else ''}${cuan:,.2f}</div><small>{st.session_state.wins} WIN · {st.session_state.losses} LOSS · {winrate}% WR</small></div>", unsafe_allow_html=True)
 with c3: st.markdown(f"<div class='topbox'><small>🏦 EQUITY</small><br><div class='bigbal' style='color:{cuan_color}'>${equity:,.2f}</div><small>{st.session_state.trades} TRADES · SCAN {st.session_state.scan}x</small></div>", unsafe_allow_html=True)
 
 left, right = st.columns([1, 2.2])
