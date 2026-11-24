@@ -76,7 +76,7 @@ st.session_state.scan+=1
 st.session_state.checked+=1
 
 # --- TRADING LOGIC ---
-modal=50.0; tp=3.0; sl=-2.0
+modal=500.0; tp=3.0; sl=-2.0
 equity=st.session_state.cash
 if st.session_state.punya:
     cur=None
