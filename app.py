@@ -86,7 +86,7 @@ for addr in ambil_coin_baru():
     # 2. Coin LAGI BOOST / TRENDING
          try:
              d = requests.get(f"https://api.dexscreener.com/latest/dex/tokens/{addr}", timeout=10).json()
-        for p in d.get("pairs", [])[:1]:
+                    for p in d.get("pairs", [])[:1]:
             if p.get("chainId") != "solana": continue
             sym = p.get("baseToken", {}).get("symbol", "")
             if sym == "" or any(x["nama"] == sym for x in coins): continue
