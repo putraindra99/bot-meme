@@ -102,27 +102,22 @@ try:
             except: continue
 except: pass
 
-# === v7.1 - SMART TIER - MCAP 0 DIANGGAP LOLOS ===
-def mcap_ok(c):
-    if c["mcap"]==0: return True
-    return 50000<=c["mcap"]<=3000000
-def vol_ok(c):
-    return 150000<=c["vol"]<=4000000
+# === v7.2 - MCAP 5K-400K - VOL 25K-1M - NAIK >200% - NO NGASAL ===
+def base_ok(c):
+    return 5000<=c["mcap"]<=400000 and 25000<=c["vol"]<=1000000 and c["txns"]>=50 and c["buys"]>=20
 
-coins=[c for c in all_coins if 300<=c["chg1h"]<=3000 and mcap_ok(c) and vol_ok(c) and c["txns"]>=50]
-level="TIER1 MONSTER 300%-3000%"
+coins=[c for c in all_coins if c["chg1h"]>200 and base_ok(c)]
+level="TIER1 NAIK >200% MCAP 5K-400K VOL 25K-1M"
 if not coins:
-    coins=[c for c in all_coins if 100<=c["chg1h"]<=3000 and mcap_ok(c) and c["vol"]>=100000]
-    level="TIER2 MONSTER 100%+"
+    coins=[c for c in all_coins if c["chg1h"]>100 and base_ok(c)]
+    level="TIER2 NAIK >100% MCAP 5K-400K VOL 25K-1M"
 if not coins:
-    coins=[c for c in all_coins if 50<=c["chg1h"]<=3000 and c["vol"]>=50000]
-    level="TIER3 PUMP 50%+"
+    coins=[c for c in all_coins if c["chg1h"]>50 and base_ok(c)]
+    level="TIER3 NAIK >50% MCAP 5K-400K VOL 25K-1M"
 if not coins:
-    coins=[c for c in all_coins if c["chg1h"]>0 and c["vol"]>=10000]
-    level="TIER4 UPTREND >0%"
-if not coins:
-    coins=all_coins[:20]
-    level="TIER5 SEMUA"
+    coins=[c for c in all_coins if c["chg1h"]>0 and base_ok(c)]
+    level="TIER4 UPTREND >0% MCAP 5K-400K VOL 25K-1M"
+# Kalo masih kosong, BIARIN KOSONG - JANGAN BELI SOL / COIN VOL $1 LAGI!
 total_scan=len(all_coins)
 coins=sorted(coins, key=lambda x: x["chg1h"], reverse=True)[:20]
 st.session_state.scan+=1; st.session_state.checked+=len(coins)
@@ -136,7 +131,7 @@ if st.session_state.punya:
     st.session_state.hold+=1
     jual_paksa=""
     if cur is None:
-        jual_paksa="COIN HILANG / GAK PUMP LAGI"
+        jual_paksa="COIN HILANG / GAK LOLOS FILTER LAGI"
         harga_skrg=st.session_state.beli
     elif cur_idx>=10:
         jual_paksa=f"GAK RAMAI LAGI - RANK {cur_idx+1}"
@@ -177,7 +172,7 @@ top=coins[0] if coins else {"nama":"-","fomo":0,"vol":0,"txns":0,"buys":0,"mcap"
 cuan=equity-10000.0
 cuan_color="#00ff88" if cuan>=0 else "#ff2d55"
 
-st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v7.1-SMART TIER</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>", unsafe_allow_html=True)
+st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v7.2-MCAP 5K-400K</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>", unsafe_allow_html=True)
 c1,c2,c3=st.columns(3)
 with c1: st.markdown(f"<div class='topbox'><small>💰 MODAL</small><br><div class='bigbal' style='color:#00d4ff'>$10,000.00</div><small>Per Trade $500 · TP +{tp}% · SL {sl}%</small></div>", unsafe_allow_html=True)
 with c2: st.markdown(f"<div class='topbox'><small>📈 CUAN</small><br><div class='bigbal' style='color:{cuan_color}'>{'+' if cuan>=0 else ''}${cuan:,.2f}</div><small>{st.session_state.wins} WIN · {st.session_state.losses} LOSS · {winrate}% WR</small></div>", unsafe_allow_html=True)
@@ -186,10 +181,10 @@ with c3: st.markdown(f"<div class='topbox'><small>🏦 EQUITY</small><br><div cl
 left, right = st.columns([1, 2.2])
 with left:
     st.markdown(f"<div class='card radar'><b>👁️ RADAR</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>SCAN TOTAL {total_scan} COIN<br>LEVEL: {level}</small><br><small style='color:#00d4ff'>paling pump: {top['nama']} +{top['chg1h']}% · MCAP ${top['mcap']:,}</small></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>SMART TIER!<br>300% -> 100% -> 50% -> 0%</small></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>KETAT!<br>MCAP 5K-400K · VOL 25K-1M · NAIK >200%</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trigger'><b>⚡ TRIGGER</b> <span class='badge' style='background:#ffcc00;color:black;float:right'>ARMED</span><br><small>auto FIRE - ANTI BOSEN<br>skip 3 coin terakhir!</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card orca'><b>🐋 ORCA</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>follows smart wallets<br>top pump: {top['nama']}</small></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card trip'><b>🚨 TRIPWIRE</b> <span class='badge' style='background:#ff9500;color:black;float:right'>ARMED</span><br><small>auto jual: TP/SL / GAK PUMP / 50 DETIK</small></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card trip'><b>🚨 TRIPWIRE</b> <span class='badge' style='background:#ff9500;color:black;float:right'>ARMED</span><br><small>auto jual: TP/SL / GAK LOLOS / 50 DETIK</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card harvest'><b>🌾 HARVEST</b> <span class='badge trail' style='float:right'>TRAIL</span><br><small>kunci profit, jual di TP</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card pulse'><b>💓 PULSE</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>scan ke-{st.session_state.scan} · HOLD {st.session_state.hold}x · NONSTOP</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card conductor'><b>🎼 CONDUCTOR</b> <span class='badge' style='background:#a259ff;color:white;float:right'>PING</span><br><small>simulasi, harga REAL market</small></div>", unsafe_allow_html=True)
@@ -198,12 +193,12 @@ with right:
     st.markdown(f"<div class='card'><b>NIGHT DESK · SCAN → SHIELD → SCORE → FIRE → LOG</b> <span style='float:right'>total scan {total_scan} · LEVEL {level}</span><br><br>🔍 SCAN → 🛡️ SHIELD → 📊 SCORE → ⚡ FIRE → 📜 LOG<br><br><b>FIRED</b> {st.session_state.trades} | <b>WIN RATE</b> {winrate}% | <b>SCAN KE</b> {st.session_state.scan}</div>", unsafe_allow_html=True)
     if st.session_state.punya: st.success(f"🤲 PEGANG: {st.session_state.punya} | Beli ${st.session_state.beli:.6f} REAL | HOLD {st.session_state.hold}/5 | TP +{tp}% / SL {sl}%")
     else: st.info(f"⏳ Bot lagi nyari coin... Total scan {total_scan} coin, LEVEL {level}")
-    st.markdown(f"### 🔥 COIN TRENDING - {level} - TOTAL SCAN {total_scan}")
+    st.markdown(f"### 🔥 COIN TRENDING - {level}")
     if coins:
         df=pd.DataFrame([{"#":i+1,"Coin":c["nama"],"Harga REAL":c["harga"],"Naik 24h %":c["chg1h"],"Mcap $":c["mcap"],"Volume 24h $":c["vol"],"Txns 24h":c["txns"],"Buys":c["buys"],"Umur":c["umur"],"Sumber":c["src"]} for i,c in enumerate(coins)])
         st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.warning("⏳ GAK ADA COIN SAMA SEKALI! API Dexscreener lagi error, coba refresh 1 menit lagi!")
+        st.warning("⏳ GAK ADA COIN YANG LOLOS MCAP 5K-400K + VOL 25K-1M + NAIK >0%! Bot nunggu, gak beli ngasal!")
     st.line_chart(pd.DataFrame({"Equity":st.session_state.hist}))
     st.markdown("### 📜 LOG - BUY BIRU · TP IJO · SL MERAH · HOLD KUNING")
     if st.session_state.log:
