@@ -26,6 +26,7 @@ if "cash" not in st.session_state:
     st.session_state.cash=10000.0; st.session_state.punya=None; st.session_state.beli=0; st.session_state.jumlah=0
     st.session_state.log=[]; st.session_state.hist=[10000.0]
     st.session_state.wins=0; st.session_state.losses=0; st.session_state.scan=0; st.session_state.trades=0; st.session_state.checked=0; st.session_state.hold=0
+    st.session_state.last_coins=[] # ANTI BOSEN - inget 3 coin terakhir
 if st.button("🔄 RESET TERMINAL - NOLIN SEMUA"):
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
@@ -39,7 +40,6 @@ def get_json(u):
 now_ms=int(time.time()*1000)
 coins=[]
 def tambah(sym, price, chg, vol, txns, buys, age_min, src):
-    # WHALE ONLY - SEPI DIBUANG TOTAL!
     if not sym or sym=="?" or not price or float(price)<=0: return
     if vol < 50000: return
     if txns < 500: return
@@ -143,9 +143,17 @@ if st.session_state.punya:
         st.session_state.log.append((time.strftime("%H:%M"),"EXIT",st.session_state.punya,f"${profit:.2f} - {alasan}"))
         if profit>0: st.session_state.wins+=1
         else: st.session_state.losses+=1
-        st.session_state.trades+=1; st.session_state.punya=None; st.session_state.jumlah=0; st.session_state.hold=0; equity=st.session_state.cash
+        st.session_state.trades+=1
+        st.session_state.last_coins.append(st.session_state.punya)
+        st.session_state.last_coins=st.session_state.last_coins[-3:]
+        st.session_state.punya=None; st.session_state.jumlah=0; st.session_state.hold=0; equity=st.session_state.cash
 else:
-    top=coins[0] if coins else None
+    # ANTI BOSEN - SKIP 3 COIN TERAKHIR, AMBIL YANG BERIKUTNYA!
+    top=None
+    for cc in coins:
+        if cc["nama"] not in st.session_state.last_coins:
+            top=cc; break
+    if top is None: top=coins[0] if coins else None
     if top and st.session_state.cash>=modal:
         st.session_state.cash-=modal; st.session_state.punya=top["nama"]; st.session_state.beli=top["harga"]; st.session_state.jumlah=modal/top["harga"]; st.session_state.hold=0
         st.session_state.log.append((time.strftime("%H:%M"),"FIRE",top["nama"],f"BELI $500 - {top['src']} - VOL ${top['vol']:,} - {top['txns']} TX - {top['buys']} BUYS"))
@@ -155,7 +163,7 @@ winrate=int(st.session_state.wins/(st.session_state.wins+st.session_state.losses
 top=coins[0] if coins else {"nama":"-","fomo":0,"vol":0,"txns":0,"buys":0}
 
 h1,h2,h3=st.columns([1.2,2,1])
-with h1: st.markdown(f"### 👽 **Grok Terminal**<br><small>by Logics · v6.2-WHALE-ONLY</small><br><span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span><br><small>VOL > $50K - WHALE ONLY</small>", unsafe_allow_html=True)
+with h1: st.markdown(f"### 👽 **Grok Terminal**<br><small>by Logics · v6.3-ANTI-BOSEN</small><br><span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span><br><small>VOL > $50K - ROTASI 3 COIN</small>", unsafe_allow_html=True)
 with h2: st.markdown(f"<div style='text-align:center'><div class='bigbal'>${equity:,.2f}</div><small>balance SIMULASI - Harga REAL</small><br><span class='win'>{st.session_state.wins}</span> <small>wins</small></div>", unsafe_allow_html=True)
 with h3: st.markdown(f"<div style='text-align:right'><div style='font-size:28px;font-weight:900'>{st.session_state.trades}</div><small>trades</small><br><div class='loss'>{st.session_state.losses}</div><small>losses</small></div>", unsafe_allow_html=True)
 
@@ -163,7 +171,7 @@ left, right = st.columns([1, 2.2])
 with left:
     st.markdown(f"<div class='card radar'><b>👁️ RADAR</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>PUMP + GMGN + AXIOM + DEX<br>cari WHALE - VOL GEDE</small><br><small style='color:#00d4ff'>paling rame: {top['nama']} · Vol ${top['vol']:,} · {top['buys']} buys</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>BUANG coin sepi!<br>Vol < $50K / Tx < 500 / Buys < 300 DIBUANG</small><br><small style='color:#ff2d55'>shield ON - WHALE ONLY</small></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card trigger'><b>⚡ TRIGGER</b> <span class='badge' style='background:#ffcc00;color:black;float:right'>ARMED</span><br><small>auto FIRE coin VOL TERGEDE<br>modal $500 - ROTASI 50 DETIK</small><br><small>TP +{tp}% · SL {sl}% · Modal ${modal:.0f}</small></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card trigger'><b>⚡ TRIGGER</b> <span class='badge' style='background:#ffcc00;color:black;float:right'>ARMED</span><br><small>auto FIRE - ANTI BOSEN<br>skip 3 coin terakhir!</small><br><small>TP +{tp}% · SL {sl}% · Modal ${modal:.0f}</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card orca'><b>🐋 ORCA</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>follows smart wallets<br>top whale: {top['nama']}</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trip'><b>🚨 TRIPWIRE</b> <span class='badge' style='background:#ff9500;color:black;float:right'>ARMED</span><br><small>auto jual: TP/SL / HILANG / GAK RAMAI / 50 DETIK</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card harvest'><b>🌾 HARVEST</b> <span class='badge trail' style='float:right'>TRAIL</span><br><small>kunci profit, jual di TP</small></div>", unsafe_allow_html=True)
@@ -178,7 +186,7 @@ with right:
     df=pd.DataFrame([{"#":i+1,"Coin":c["nama"],"Harga REAL":c["harga"],"Naik 1h %":c["chg1h"],"Volume 1h $":c["vol"],"Txns 1h":c["txns"],"Buys":c["buys"],"Umur":c["umur"],"Sumber":c["src"]} for i,c in enumerate(coins)])
     st.dataframe(df, use_container_width=True, hide_index=True)
     st.line_chart(pd.DataFrame({"Equity":st.session_state.hist}))
-    st.markdown("### 📜 LOG - AUTO TRADE - WHALE ONLY")
+    st.markdown("### 📜 LOG - AUTO TRADE - ANTI BOSEN")
     if st.session_state.log:
         for t,typ,nama,ket in reversed(st.session_state.log[-10:]):
             if typ=="FIRE": st.markdown(f"**{t}** ⚡ **FIRE** ${nama} → {ket}")
