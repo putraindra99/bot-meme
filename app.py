@@ -53,20 +53,44 @@ try:
                 age_min=(now_ms-cc.get("created_timestamp",0))/60000
                 coins.append({"nama":sym,"harga":0.0001+random.random()*0.001,"fomo":10,"chg1h":round(random.uniform(-5,15),1),"vol":cc.get("usd_market_cap",0),"umur":f"{round(age_min)}m" if age_min<60 else f"{round(age_min/60,1)}j","src":"PUMP"})
             except: continue
-except: pass
-for q in ["SOL","pump","BONK"]:
-    d=get_json(f"https://api.dexscreener.com/latest/dex/search/?q={q}")
-    if not d: continue
-    for p in d.get("pairs",[])[:20]:
-        try:
-            if p.get("chainId")!="solana": continue
-            sym=p.get("baseToken",{}).get("symbol","?")
-            if sym=="?" or any(x["nama"]==sym for x in coins): continue
-            price=float(p.get("priceUsd",0) or 0)
-            if price<=0: continue
-            age_min=(now_ms-p.get("pairCreatedAt",now_ms))/60000
-            coins.append({"nama":sym,"harga":price,"fomo":round(10+random.random()*5,1),"chg1h":round(random.uniform(-5,20),1),"vol":10000,"umur":f"{round(age_min)}m" if age_min<60 else f"{round(age_min/60,1)}j","src":"DEX"})
-        except: continue
+except: pass# AUTO-HUNT: Bot cari sendiri coin baru, tanpa di-setting
+def ambil_coin_baru():
+    hasil = []
+    # 1. Coin BARU LAUNCH dari DexScreener
+    try:
+        r = requests.get("https://api.dexscreener.com/token-profiles/latest/v1", timeout=10).json()
+        for t in r[:30]:
+            if t.get("chainId") == "solana":
+                hasil.append(t.get("tokenAddress"))
+    except: pass
+    # 2. Coin LAGI BOOST / TRENDING
+    try:
+        r = requests.get("https://api.dexscreener.com/token-boosts/latest/v1", timeout=10).json()
+        for t in r[:30]:
+            if t.get("chainId") == "solana":
+                hasil.append(t.get("tokenAddress"))
+    except: pass
+    # 3. Coin BARU dari Pump.fun
+    try:
+        r = requests.get("https://frontend-api.pump.fun/coins?offset=0&limit=50&sort=created_timestamp&order=DESC&includeNsfw=false", timeout=10).json()
+        for t in r:
+            hasil.append(t.get("mint"))
+    except: pass
+    return list(dict.fromkeys(hasil))[:50]
+
+for addr in ambil_coin_baru():
+    try:
+        d = requests.get(f"https://api.dexscreener.com/latest/dex/tokens/{addr}", timeout=10).json()
+        for p in d.get("pairs", [])[:1]:
+            if p.get("chainId") != "solana": continue
+            sym = p.get("baseToken", {}).get("symbol", "")
+            if sym == "" or any(x["nama"] == sym for x in coins): continue
+            price = float(p.get("priceUsd", 0) or 0)
+            if price <= 0: continue
+            age_min = (now_ms - p.get("pairCreatedAt", now_ms)) / 60000
+            coins.append({"nama": sym, "harga": price, "fomo": round(10 + random.random()*5, 1), "chg1h": round(random.uniform(-5, 20), 1), "vol": 10000, "umur": f"{round(age_min)}m", "src": "AUTO"})
+    except: continue 
+
 if not coins:
     coins=[{"nama":"SOL","harga":186.7,"fomo":10,"chg1h":2.1,"vol":100000,"umur":"-","src":"CADANGAN"},
            {"nama":"BONK","harga":0.00002,"fomo":9,"chg1h":5,"vol":50000,"umur":"-","src":"CADANGAN"},
