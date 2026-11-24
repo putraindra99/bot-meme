@@ -58,7 +58,7 @@ try:
             tambah(p.get("baseToken",{}).get("symbol","?"), float(p.get("priceUsd",0) or 0), float(p.get("priceChange",{}).get("h1",0) or 0), float(p.get("volume",{}).get("h1",0) or 0), int(tx.get("buys",0)+tx.get("sells",0)), int(tx.get("buys",0)), (now_ms-p.get("pairCreatedAt",now_ms))/60000, "DEX-TREND")
         except: continue
 except: pass
-for q in ["solana","meme","pump","bonk","wif"]:
+for q in ["solana","meme","pump","bonk","wif","pepe","doge"]:
     d=get_json(f"https://api.dexscreener.com/latest/dex/search/?q={q}")
     if not d: continue
     for p in d.get("pairs",[])[:30]:
@@ -107,11 +107,9 @@ try:
             except: continue
 except: pass
 
-coins=[c for c in all_coins if c["vol"]>=50000 and c["txns"]>=500 and c["buys"]>=300]
-level="WHALE $50K+"
-if not coins:
-    coins=[c for c in all_coins if c["vol"]>=10000 and c["txns"]>=100]
-    level="RAME $10K+"
+# === v6.7 - SHIELD DILONGARIN BIAR 20 COIN ===
+coins=[c for c in all_coins if c["vol"]>=10000 and c["txns"]>=100 and c["buys"]>=50]
+level="RAME $10K+"
 if not coins:
     coins=[c for c in all_coins if c["vol"]>=5000 and c["txns"]>=50]
     level="STANDAR $5K+"
@@ -174,7 +172,7 @@ top=coins[0] if coins else {"nama":"-","fomo":0,"vol":0,"txns":0,"buys":0}
 cuan=equity-10000.0
 cuan_color="#00ff88" if cuan>=0 else "#ff2d55"
 
-st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v6.6-MODAL AWAL</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>")
+st.markdown(f"### 👽 **Grok Terminal** <small>by Logics · v6.7-20 COIN</small> <span class='badge armed'>● LIVE · {time.strftime('%H:%M:%S')}</span>", unsafe_allow_html=True)
 c1,c2,c3=st.columns(3)
 with c1: st.markdown(f"<div class='topbox'><small>💰 MODAL</small><br><div class='bigbal' style='color:#00d4ff'>$10,000.00</div><small>Per Trade $500 · TP +{tp}% · SL {sl}%</small></div>", unsafe_allow_html=True)
 with c2: st.markdown(f"<div class='topbox'><small>📈 CUAN</small><br><div class='bigbal' style='color:{cuan_color}'>{'+' if cuan>=0 else ''}${cuan:,.2f}</div><small>{st.session_state.wins} WIN · {st.session_state.losses} LOSS · {winrate}% WR</small></div>", unsafe_allow_html=True)
@@ -183,7 +181,7 @@ with c3: st.markdown(f"<div class='topbox'><small>🏦 EQUITY</small><br><div cl
 left, right = st.columns([1, 2.2])
 with left:
     st.markdown(f"<div class='card radar'><b>👁️ RADAR</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>DEX-TREND + PUMP + GMGN + AXIOM<br>LEVEL: {level}</small><br><small style='color:#00d4ff'>paling rame: {top['nama']} · Vol ${top['vol']:,} · {top['buys']} buys</small></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>FALLBACK BERLAPIS!<br>$50K -> $10K -> $5K -> SEMUA</small></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card shield'><b>🛡️ SHIELD</b> <span class='badge' style='background:#ff2d55;color:white;float:right'>ARMED</span><br><small>FALLBACK BERLAPIS!<br>$10K -> $5K -> SEMUA</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trigger'><b>⚡ TRIGGER</b> <span class='badge' style='background:#ffcc00;color:black;float:right'>ARMED</span><br><small>auto FIRE - ANTI BOSEN<br>skip 3 coin terakhir!</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card orca'><b>🐋 ORCA</b> <span class='badge armed' style='float:right'>ARMED</span><br><small>follows smart wallets<br>top whale: {top['nama']}</small></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='card trip'><b>🚨 TRIPWIRE</b> <span class='badge' style='background:#ff9500;color:black;float:right'>ARMED</span><br><small>auto jual: TP/SL / HILANG / GAK RAMAI / 50 DETIK</small></div>", unsafe_allow_html=True)
