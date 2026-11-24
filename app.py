@@ -78,8 +78,9 @@ def ambil_coin_baru():
         for t in (r or []):
             if t.get("mint"):
                 hasil.append(t.get("mint"))
-    except: pass
-   return list(dict.fromkeys(hasil))[:50]
+    except: pass    
+    return list(dict.fromkeys(hasil))[:50]
+   
 
 for addr in ambil_coin_baru():
     # 2. Coin LAGI BOOST / TRENDING
