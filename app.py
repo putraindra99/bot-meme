@@ -53,34 +53,38 @@ try:
                 age_min=(now_ms-cc.get("created_timestamp",0))/60000
                 coins.append({"nama":sym,"harga":0.0001+random.random()*0.001,"fomo":10,"chg1h":round(random.uniform(-5,15),1),"vol":cc.get("usd_market_cap",0),"umur":f"{round(age_min)}m" if age_min<60 else f"{round(age_min/60,1)}j","src":"PUMP"})
             except: continue
-except: pass# AUTO-HUNT: Bot cari sendiri coin baru, tanpa di-setting
+except: pass
+    #AUTO-HUNT: Bot cari sendiri coin baru, tanpa di-setting
 def ambil_coin_baru():
+    headers = {"User-Agent": "Mozilla/5.0"}
     hasil = []
-    # 1. Coin BARU LAUNCH dari DexScreener
+    # 1. TOP BOOST - paling gampang tembus
     try:
-        r = requests.get("https://api.dexscreener.com/token-profiles/latest/v1", timeout=10).json()
-        for t in r[:30]:
-            if t.get("chainId") == "solana":
+        r = requests.get("https://api.dexscreener.com/token-boosts/top/v1", headers=headers, timeout=10).json()
+        for t in (r or [])[:40]:
+            if t.get("chainId") == "solana" and t.get("tokenAddress"):
                 hasil.append(t.get("tokenAddress"))
     except: pass
-    # 2. Coin LAGI BOOST / TRENDING
+    # 2. LATEST PROFILE
     try:
-        r = requests.get("https://api.dexscreener.com/token-boosts/latest/v1", timeout=10).json()
-        for t in r[:30]:
-            if t.get("chainId") == "solana":
+        r = requests.get("https://api.dexscreener.com/token-profiles/latest/v1", headers=headers, timeout=10).json()
+        for t in (r or [])[:40]:
+            if t.get("chainId") == "solana" and t.get("tokenAddress"):
                 hasil.append(t.get("tokenAddress"))
     except: pass
-    # 3. Coin BARU dari Pump.fun
+    # 3. PUMP.FUN BARU
     try:
-        r = requests.get("https://frontend-api.pump.fun/coins?offset=0&limit=50&sort=created_timestamp&order=DESC&includeNsfw=false", timeout=10).json()
-        for t in r:
-            hasil.append(t.get("mint"))
+        r = requests.get("https://frontend-api-v2.pump.fun/coins?offset=0&limit=50&sort=created_timestamp&order=DESC&includeNsfw=false", headers=headers, timeout=10).json()
+        for t in (r or []):
+            if t.get("mint"):
+                hasil.append(t.get("mint"))
     except: pass
-    return list(dict.fromkeys(hasil))[:50]
+        return list(dict.fromkeys(hasil))[:50]
 
 for addr in ambil_coin_baru():
-    try:
-        d = requests.get(f"https://api.dexscreener.com/latest/dex/tokens/{addr}", timeout=10).json()
+    # 2. Coin LAGI BOOST / TRENDING
+         try:
+             d = requests.get(f"https://api.dexscreener.com/latest/dex/tokens/{addr}", timeout=10).json()
         for p in d.get("pairs", [])[:1]:
             if p.get("chainId") != "solana": continue
             sym = p.get("baseToken", {}).get("symbol", "")
@@ -89,15 +93,7 @@ for addr in ambil_coin_baru():
             if price <= 0: continue
             age_min = (now_ms - p.get("pairCreatedAt", now_ms)) / 60000
             coins.append({"nama": sym, "harga": price, "fomo": round(10 + random.random()*5, 1), "chg1h": round(random.uniform(-5, 20), 1), "vol": 10000, "umur": f"{round(age_min)}m", "src": "AUTO"})
-    except: continue 
-
-if not coins:
-    coins=[{"nama":"SOL","harga":186.7,"fomo":10,"chg1h":2.1,"vol":100000,"umur":"-","src":"CADANGAN"},
-           {"nama":"BONK","harga":0.00002,"fomo":9,"chg1h":5,"vol":50000,"umur":"-","src":"CADANGAN"},
-           {"nama":"PUMP","harga":0.006,"fomo":9,"chg1h":3,"vol":50000,"umur":"-","src":"CADANGAN"}]
-coins=sorted(coins, key=lambda x: x["fomo"], reverse=True)[:10]
-st.session_state.scan+=1
-st.session_state.checked+=1
+    except: continue
 
 # --- TRADING LOGIC ---
 modal=500.0; tp=3.0; sl=-2.0
